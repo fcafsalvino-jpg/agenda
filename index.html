@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#C9456B">
+<title>Doçuras da Fla — Agenda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase (carrega só quando publicado online; no preview roda em modo local) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+
+<style>
+  :root{
+    --cream:#FFF8F2;--cream-2:#FDEEE3;--surface:#FFFFFF;
+    --rose:#C9456B;--rose-dark:#A8345A;--rose-soft:#FBE3EC;
+    --caramel:#C8924A;--caramel-soft:#F6E9D6;
+    --ink:#3B2A2E;--ink-soft:#7A6A6E;--line:#F0E2D8;
+    --green:#1FA66A;--green-soft:#E2F5EC;--blue:#3576B5;--blue-soft:#E5EFF9;
+    --shadow:0 8px 28px rgba(160,90,60,.10);--shadow-sm:0 3px 12px rgba(160,90,60,.08);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--cream);color:var(--ink);font-family:'Manrope',sans-serif}
+  body{min-height:100vh;padding-bottom:96px}
+  ::selection{background:var(--rose-soft)}
+
+  header{position:sticky;top:0;z-index:40;background:linear-gradient(135deg,var(--rose) 0%,var(--rose-dark) 100%);color:#fff;padding:18px 20px 16px;border-radius:0 0 24px 24px;box-shadow:var(--shadow)}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .logo{font-size:26px;line-height:1}
+  .brand h1{font-family:'Fraunces',serif;font-weight:600;font-size:19px;letter-spacing:.2px;flex:1}
+  .brand h1 small{display:block;font-family:'Manrope';font-weight:500;font-size:11px;opacity:.82;letter-spacing:.3px;margin-top:1px}
+  .icon-btn{background:rgba(255,255,255,.16);border:none;color:#fff;width:38px;height:38px;border-radius:12px;font-size:17px;display:grid;place-items:center;cursor:pointer;transition:.15s}
+  .icon-btn:active{transform:scale(.92);background:rgba(255,255,255,.28)}
+  .stats{display:flex;gap:8px;margin-top:14px}
+  .stat{flex:1;background:rgba(255,255,255,.14);border-radius:14px;padding:9px 12px}
+  .stat .n{font-family:'Fraunces',serif;font-size:22px;font-weight:600;line-height:1}
+  .stat .l{font-size:10.5px;opacity:.85;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+
+  .tabs{display:flex;gap:6px;padding:14px 16px 4px}
+  .tab{flex:1;padding:10px 8px;border:none;background:transparent;color:var(--ink-soft);font-family:'Manrope';font-weight:600;font-size:13px;border-radius:12px;cursor:pointer;transition:.18s;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .tab .ti{font-size:18px}
+  .tab.active{background:var(--surface);color:var(--rose);box-shadow:var(--shadow-sm)}
+  main{padding:8px 16px 0}
+
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin:6px 2px 12px}
+  .cal-head h2{font-family:'Fraunces',serif;font-weight:600;font-size:18px;text-transform:capitalize}
+  .cal-nav{display:flex;gap:6px}
+  .cal-nav button{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:15px;cursor:pointer}
+  .cal-nav button:active{background:var(--cream-2)}
+  .weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+  .weekdays span{text-align:center;font-size:10.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px;padding:4px 0}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .day{aspect-ratio:1/1;border-radius:12px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:.12s}
+  .day.empty{background:transparent;border:none;cursor:default}
+  .day .dn{font-size:14px;font-weight:600}
+  .day.today{border-color:var(--rose);border-width:2px}
+  .day.today .dn{color:var(--rose)}
+  .day.has{background:var(--rose);border-color:var(--rose)}
+  .day.has .dn{color:#fff}
+  .day .badge{position:absolute;top:4px;right:5px;background:var(--caramel);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:grid;place-items:center;padding:0 3px}
+  .day .stEmoji{position:absolute;top:3px;left:4px;font-size:10px;line-height:1}
+  .day.sel{outline:3px solid var(--caramel);outline-offset:-1px}
+  .day:active{transform:scale(.94)}
+
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin:12px 2px 4px;font-size:11px;color:var(--ink-soft);font-weight:600}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend i{width:11px;height:11px;border-radius:4px;display:inline-block}
+
+  .day-orders{margin-top:18px}
+  .day-orders h3{font-family:'Fraunces',serif;font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .day-orders h3 .pill{background:var(--rose-soft);color:var(--rose);font-family:'Manrope';font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px}
+
+  .status-banner{border-radius:14px;padding:11px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-weight:600;font-size:13px}
+  .status-banner .em{font-size:18px}
+  .status-banner .txt{flex:1;line-height:1.3}
+  .status-banner .txt small{display:block;font-weight:500;opacity:.8;font-size:11.5px;margin-top:1px}
+  .status-banner button{background:rgba(0,0,0,.06);border:none;color:inherit;font-weight:700;font-size:12px;padding:6px 11px;border-radius:9px;cursor:pointer}
+  .status-set-btn{width:100%;border:1.5px dashed var(--line);background:var(--surface);color:var(--ink-soft);font-weight:600;font-size:12.5px;padding:10px;border-radius:12px;cursor:pointer;margin-bottom:12px}
+  .status-set-btn:active{background:var(--cream-2)}
+
+  .card{background:var(--surface);border-radius:18px;padding:15px 16px;box-shadow:var(--shadow-sm);margin-bottom:11px;border:1px solid var(--line);position:relative;overflow:hidden}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--rose)}
+  .card.entrega::before{background:var(--blue)}
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:9px}
+  .card .tema{font-family:'Fraunces',serif;font-size:16px;font-weight:600;line-height:1.2}
+  .card .cliente{font-size:12.5px;color:var(--ink-soft);margin-top:2px;font-weight:500}
+  .card .time-tag{flex-shrink:0;background:var(--cream-2);color:var(--rose-dark);font-weight:700;font-size:13px;padding:5px 10px;border-radius:10px;white-space:nowrap}
+  .specs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}
+  .spec{font-size:11.5px;font-weight:600;background:var(--caramel-soft);color:#8a6529;padding:4px 9px;border-radius:9px;display:inline-flex;align-items:center;gap:4px}
+  .spec.tipo-r{background:var(--green-soft);color:#0d7a4a}
+  .spec.tipo-e{background:var(--blue-soft);color:#235a8c}
+  .spec.valor{background:var(--rose-soft);color:var(--rose-dark)}
+  .card .obs{font-size:12px;color:var(--ink-soft);background:var(--cream);padding:7px 10px;border-radius:9px;margin-bottom:11px;line-height:1.4}
+  .card-actions{display:flex;gap:7px}
+  .card-actions button{flex:1;border:none;padding:9px;border-radius:11px;font-family:'Manrope';font-weight:700;font-size:12.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:.12s}
+  .card-actions button:active{transform:scale(.96)}
+  .btn-wa{background:#25D366;color:#fff}.btn-ed{background:var(--cream-2);color:var(--ink)}
+  .btn-del{background:#FBE7E7;color:#C0392B;flex:0 0 44px}
+
+  .filters{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+  .filters button{flex-shrink:0;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);font-weight:600;font-size:12.5px;padding:7px 14px;border-radius:20px;cursor:pointer}
+  .filters button.active{background:var(--rose);color:#fff;border-color:var(--rose)}
+  .dg-label{font-size:12px;font-weight:700;color:var(--caramel);text-transform:uppercase;letter-spacing:.6px;margin:14px 2px 9px;display:flex;align-items:center;gap:8px}
+  .dg-label::after{content:"";flex:1;height:1px;background:var(--line)}
+  .empty-state{text-align:center;padding:50px 24px;color:var(--ink-soft)}
+  .empty-state .em{font-size:46px;margin-bottom:12px}
+  .empty-state p{font-size:14px;line-height:1.5}
+
+  .fab{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:45;background:linear-gradient(135deg,var(--rose),var(--rose-dark));color:#fff;border:none;padding:15px 26px;border-radius:30px;font-family:'Manrope';font-weight:700;font-size:15px;box-shadow:0 10px 26px rgba(201,69,107,.45);cursor:pointer;display:flex;align-items:center;gap:8px;transition:.15s}
+  .fab:active{transform:translateX(-50%) scale(.95)}
+
+  .sheet-bg{position:fixed;inset:0;background:rgba(59,42,46,.5);z-index:50;opacity:0;pointer-events:none;transition:.25s;backdrop-filter:blur(2px)}
+  .sheet-bg.open{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:55;background:var(--cream);border-radius:26px 26px 0 0;max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);box-shadow:0 -8px 40px rgba(0,0,0,.18)}
+  .sheet.open{transform:translateY(0)}
+  .sheet-handle{width:40px;height:4px;background:var(--line);border-radius:4px;margin:11px auto 4px}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 14px}
+  .sheet-head h2{font-family:'Fraunces',serif;font-size:20px;font-weight:600}
+  .sheet-head .close{background:var(--cream-2);border:none;width:34px;height:34px;border-radius:11px;font-size:17px;cursor:pointer;color:var(--ink-soft)}
+  .form{padding:0 20px 28px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .field label .req{color:var(--rose)}
+  .field input,.field textarea,.field select{width:100%;border:1.5px solid var(--line);background:var(--surface);border-radius:13px;padding:12px 14px;font-family:'Manrope';font-size:15px;color:var(--ink);transition:.15s}
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--rose);box-shadow:0 0 0 3px var(--rose-soft)}
+  .field textarea{resize:none;min-height:60px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .chips{display:flex;gap:9px;flex-wrap:wrap}
+  .chips .chip{flex:1;min-width:46%;border:1.5px solid var(--line);background:var(--surface);border-radius:13px;padding:12px;font-weight:700;font-size:13.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:.15s;color:var(--ink-soft)}
+  .chips .chip.on{border-color:var(--rose);background:var(--rose-soft);color:var(--rose-dark)}
+  .suggest{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+  .suggest button{border:1px dashed var(--line);background:transparent;color:var(--ink-soft);font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer}
+  .save-btn{width:100%;background:linear-gradient(135deg,var(--rose),var(--rose-dark));color:#fff;border:none;padding:16px;border-radius:16px;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;margin-top:6px;box-shadow:var(--shadow-sm)}
+  .save-btn:active{transform:scale(.98)}
+  #enderecoField{display:none}#enderecoField.show{display:block}
+
+  .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:14px;font-size:13.5px;font-weight:600;z-index:60;opacity:0;pointer-events:none;transition:.25s;box-shadow:var(--shadow);white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* gate */
+  #gate{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,var(--rose),var(--rose-dark));display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff;padding:30px;text-align:center}
+  #gate.show{display:flex}
+  #gate .logo{font-size:54px;margin-bottom:10px}
+  #gate h2{font-family:'Fraunces',serif;font-size:24px;margin-bottom:6px}
+  #gate p{opacity:.85;font-size:13px;margin-bottom:22px}
+  #gate input{width:100%;max-width:260px;text-align:center;border:none;border-radius:14px;padding:14px;font-size:18px;font-weight:700;letter-spacing:3px;margin-bottom:12px}
+  #gate button{width:100%;max-width:260px;background:#fff;color:var(--rose);border:none;border-radius:14px;padding:14px;font-weight:700;font-size:15px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- Tela de acesso (opcional) -->
+<div id="gate">
+  <div class="logo">🧁</div>
+  <h2>Doçuras da Fla</h2>
+  <p>Digite o código de acesso</p>
+  <input id="gateInput" inputmode="numeric" placeholder="••••">
+  <button id="gateBtn">Entrar</button>
+</div>
+
+<header>
+  <div class="brand">
+    <span class="logo">🧁</span>
+    <h1 id="shopName">Doçuras da Fla<small id="shopSub">Agenda local 📱</small></h1>
+    <button class="icon-btn" id="cfgBtn" title="Configurar">⚙️</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="n" id="stHoje">0</div><div class="l">Hoje</div></div>
+    <div class="stat"><div class="n" id="stSemana">0</div><div class="l">7 dias</div></div>
+    <div class="stat"><div class="n" id="stTotal">0</div><div class="l">Total</div></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" data-view="cal"><span class="ti">📅</span>Calendário</button>
+  <button class="tab" data-view="list"><span class="ti">📋</span>Lista</button>
+</div>
+
+<main>
+  <section id="view-cal">
+    <div class="cal-head">
+      <h2 id="calTitle">—</h2>
+      <div class="cal-nav"><button id="prevM">‹</button><button id="todayBtn">•</button><button id="nextM">›</button></div>
+    </div>
+    <div class="weekdays"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div>
+    <div class="grid" id="calGrid"></div>
+    <div class="legend">
+      <span><i style="background:var(--rose)"></i>Encomendas</span>
+      <span>🟠 Lotada</span><span>🔴 Fechada</span><span>🚫 Sem encomenda</span><span>📌 Aviso</span>
+    </div>
+    <div class="day-orders" id="dayOrders"></div>
+  </section>
+
+  <section id="view-list" style="display:none">
+    <div class="filters">
+      <button class="active" data-f="prox">Próximas</button>
+      <button data-f="hoje">Hoje</button>
+      <button data-f="semana">7 dias</button>
+      <button data-f="todas">Todas</button>
+    </div>
+    <div id="listWrap"></div>
+  </section>
+</main>
+
+<button class="fab" id="fab">＋ Nova encomenda</button>
+
+<!-- Sheet: encomenda -->
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head"><h2 id="sheetTitle">Nova encomenda</h2><button class="close" id="sheetClose">✕</button></div>
+  <div class="form">
+    <input type="hidden" id="fId">
+    <div class="row2">
+      <div class="field"><label>Cliente <span class="req">*</span></label><input id="fCliente" placeholder="Nome"></div>
+      <div class="field"><label>WhatsApp</label><input id="fTel" inputmode="numeric" placeholder="(85) 9..."></div>
+    </div>
+    <div class="field"><label>Tema do bolo <span class="req">*</span></label><input id="fTema" placeholder="Ex: Aniversário, Frozen, Naked Cake..."></div>
+    <div class="row2">
+      <div class="field"><label>Data <span class="req">*</span></label><input type="date" id="fData"></div>
+      <div class="field"><label>Horário</label><input type="time" id="fHora"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Tamanho</label><input id="fTamanho" placeholder="Ex: aro 25, 30 fatias"><div class="suggest" data-target="fTamanho"><button>Pequeno</button><button>Médio</button><button>Grande</button></div></div>
+      <div class="field"><label>Recheio</label><input id="fRecheio" placeholder="Ex: brigadeiro"><div class="suggest" data-target="fRecheio"><button>Brigadeiro</button><button>Ninho c/ morango</button><button>Maracujá</button></div></div>
+    </div>
+    <div class="field"><label>Entrega ou retirada <span class="req">*</span></label>
+      <div class="chips"><button type="button" class="chip on" data-tipo="retirada">🏪 Retirada</button><button type="button" class="chip" data-tipo="entrega">🛵 Entrega</button></div>
+    </div>
+    <div class="field" id="enderecoField"><label>Endereço de entrega</label><input id="fEndereco" placeholder="Rua, número, bairro..."></div>
+    <div class="field"><label>Valor (R$)</label><input id="fValor" inputmode="decimal" placeholder="0,00"></div>
+    <div class="field"><label>Observações</label><textarea id="fObs" placeholder="Detalhes, cores, alergias, sinal pago..."></textarea></div>
+    <button class="save-btn" id="saveBtn">Salvar encomenda</button>
+  </div>
+</div>
+
+<!-- Sheet: status do dia -->
+<div class="sheet-bg" id="stBg"></div>
+<div class="sheet" id="stSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head"><h2 id="stTitle">Status do dia</h2><button class="close" id="stClose">✕</button></div>
+  <div class="form">
+    <div class="field"><label>Marcar este dia como:</label>
+      <div class="chips" id="stChips">
+        <button type="button" class="chip on" data-st="normal">✅ Normal</button>
+        <button type="button" class="chip" data-st="lotada">🟠 Agenda lotada</button>
+        <button type="button" class="chip" data-st="fechada">🔴 Loja fechada</button>
+        <button type="button" class="chip" data-st="sem">🚫 Sem encomenda</button>
+        <button type="button" class="chip" data-st="custom">📌 Aviso</button>
+      </div>
+    </div>
+    <div class="field"><label>Observação (opcional)</label><input id="stNota" placeholder="Ex: feriado, só retiradas, etc."></div>
+    <button class="save-btn" id="stSave">Salvar status</button>
+  </div>
+</div>
+
+<!-- Sheet: config -->
+<div class="sheet-bg" id="cfgBg"></div>
+<div class="sheet" id="cfgSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head"><h2>Configurações</h2><button class="close" id="cfgClose">✕</button></div>
+  <div class="form">
+    <div class="field"><label>Nome da confeitaria</label><input id="cfgNome" placeholder="Doçuras da Fla"></div>
+    <button class="save-btn" id="cfgSave">Salvar</button>
+    <div class="field" style="margin-top:22px"><label>Backup dos dados</label>
+      <div style="display:flex;gap:9px;margin-top:4px">
+        <button class="save-btn" style="background:var(--caramel);box-shadow:none;flex:1" id="exportBtn">⬇️ Exportar</button>
+        <button class="save-btn" style="background:var(--cream-2);color:var(--ink);box-shadow:none;flex:1" id="importBtn">⬆️ Importar</button>
+      </div>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =================================================================
+   CONFIGURAÇÃO — preencha para ativar o COMPARTILHAMENTO entre celulares.
+   Enquanto estiver "COLE_...", o app funciona em modo local (só neste aparelho).
+   ================================================================= */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAgDhn0Mz4E4LohoroUtPfhYUZQclzBPLE",
+  authDomain:        "agenda-df.firebaseapp.com",
+  databaseURL:       "https://agenda-df-default-rtdb.firebaseio.com",
+  projectId:         "agenda-df",
+  storageBucket:     "agenda-df.firebasestorage.app",
+  messagingSenderId: "49844147524",
+  appId:             "1:49844147524:web:b73da78157de62a1a6b311"
+};
+const APP_CODE = "";           // código de acesso (ex: "1234"). Deixe "" para não pedir.
+const ROOT     = "docuras_da_fla";
+/* ================================================================= */
+
+const LS_O='df_orders',LS_D='df_days',LS_C='df_cfg';
+let orders=[],days={},cfg={nome:'Doçuras da Fla'};
+let mode='local',db=null;
+let curMonth=new Date();curMonth.setDate(1);
+let selDate=isoDate(new Date());
+let curTipo='retirada',editId=null,curFilter='prox';
+let stSelDate=null,stSelTipo='normal';
+
+const STATUS={
+  lotada:{emoji:'🟠',label:'Agenda lotada',bg:'#FBEBD2',fg:'#9a6a1a'},
+  fechada:{emoji:'🔴',label:'Loja fechada',bg:'#FBE0E0',fg:'#B53737'},
+  sem:{emoji:'🚫',label:'Não estamos pegando encomenda',bg:'#EAEAEA',fg:'#555'},
+  custom:{emoji:'📌',label:'Aviso',bg:'#E5EFF9',fg:'#235a8c'}
+};
+
+const $=id=>document.getElementById(id);
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function lsave(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function isoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DIAS=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+function fmtDataFull(iso){const[y,m,d]=iso.split('-');const dt=new Date(+y,+m-1,+d);return `${DIAS[dt.getDay()]}, ${d} de ${MESES[+m-1].toLowerCase()}`}
+function diffDays(iso){const t=new Date();t.setHours(0,0,0,0);const[y,m,d]=iso.split('-');return Math.round((new Date(+y,+m-1,+d)-t)/86400000)}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2200)}
+
+/* ---------- camada de dados (nuvem ou local) ---------- */
+function initData(){
+  const ok = window.firebase && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf('COLE')<0;
+  if(ok){
+    try{
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db=firebase.database();mode='cloud';
+      const attach=()=>{
+        db.ref(ROOT+'/orders').on('value',s=>{const v=s.val();orders=v?Object.values(v):[];renderAll()});
+        db.ref(ROOT+'/days').on('value',s=>{days=s.val()||{};renderAll()});
+        db.ref(ROOT+'/config').on('value',s=>{const v=s.val();if(v&&v.nome)cfg=v;refreshHeader();renderAll()});
+      };
+      firebase.auth().signInAnonymously().then(attach).catch(e=>{console.warn(e);attach()});
+    }catch(e){console.warn('Firebase falhou:',e);mode='local';loadLocal()}
+  }else{mode='local';loadLocal()}
+  $('shopSub').textContent = mode==='cloud' ? 'Agenda compartilhada ☁️' : 'Agenda local 📱';
+}
+function loadLocal(){orders=load(LS_O,[]);days=load(LS_D,{});cfg=load(LS_C,{nome:'Doçuras da Fla'});renderAll()}
+
+function dbSaveOrder(o){ if(mode==='cloud')db.ref(ROOT+'/orders/'+o.id).set(o); else{const i=orders.findIndex(x=>x.id===o.id);i>=0?orders[i]=o:orders.push(o);lsave(LS_O,orders);renderAll()} }
+function dbDelOrder(id){ if(mode==='cloud')db.ref(ROOT+'/orders/'+id).remove(); else{orders=orders.filter(x=>x.id!==id);lsave(LS_O,orders);renderAll()} }
+function dbSaveDay(iso,obj){ if(mode==='cloud')db.ref(ROOT+'/days/'+iso).set(obj); else{days[iso]=obj;lsave(LS_D,days);renderAll()} }
+function dbClearDay(iso){ if(mode==='cloud')db.ref(ROOT+'/days/'+iso).remove(); else{delete days[iso];lsave(LS_D,days);renderAll()} }
+function dbSaveCfg(){ if(mode==='cloud')db.ref(ROOT+'/config').set(cfg); else{lsave(LS_C,cfg);renderAll()} }
+
+/* ---------- header ---------- */
+function refreshHeader(){
+  $('shopName').childNodes[0].textContent=cfg.nome||'Doçuras da Fla';
+  const today=isoDate(new Date());let h=0,s=0;
+  orders.forEach(o=>{const dd=diffDays(o.data);if(o.data===today)h++;if(dd>=0&&dd<=6)s++});
+  $('stHoje').textContent=h;$('stSemana').textContent=s;$('stTotal').textContent=orders.length;
+}
+
+/* ---------- calendário ---------- */
+function renderCal(){
+  $('calTitle').textContent=`${MESES[curMonth.getMonth()]} ${curMonth.getFullYear()}`;
+  const grid=$('calGrid');grid.innerHTML='';
+  const y=curMonth.getFullYear(),m=curMonth.getMonth();
+  const first=new Date(y,m,1).getDay(),total=new Date(y,m+1,0).getDate(),todayIso=isoDate(new Date());
+  for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day empty';grid.appendChild(e)}
+  for(let d=1;d<=total;d++){
+    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const count=orders.filter(o=>o.data===iso).length, st=days[iso];
+    const el=document.createElement('div');
+    el.className='day'+(iso===todayIso?' today':'')+(iso===selDate?' sel':'');
+    el.innerHTML=`<span class="dn">${d}</span>`+(count?`<span class="badge">${count}</span>`:'')+(st?`<span class="stEmoji">${STATUS[st.tipo].emoji}</span>`:'');
+    if(st){const s=STATUS[st.tipo];el.style.background=s.bg;el.style.borderColor=s.bg;el.querySelector('.dn').style.color=s.fg}
+    else if(count){el.classList.add('has')}
+    el.onclick=()=>{selDate=iso;renderCal();renderDayOrders()};
+    grid.appendChild(el);
+  }
+}
+function renderDayOrders(){
+  const wrap=$('dayOrders');
+  const list=orders.filter(o=>o.data===selDate).sort((a,b)=>(a.hora||'99').localeCompare(b.hora||'99'));
+  const st=days[selDate];
+  let html=`<h3>${fmtDataFull(selDate)} <span class="pill">${list.length} encomenda${list.length!==1?'s':''}</span></h3>`;
+  if(st){const s=STATUS[st.tipo];
+    html+=`<div class="status-banner" style="background:${s.bg};color:${s.fg}"><span class="em">${s.emoji}</span><span class="txt">${s.label}${st.nota?`<small>${esc(st.nota)}</small>`:''}</span><button onclick="openStatus('${selDate}')">Alterar</button></div>`;
+  }else{
+    html+=`<button class="status-set-btn" onclick="openStatus('${selDate}')">🏷️ Marcar status do dia (lotada, fechada, aviso...)</button>`;
+  }
+  if(!list.length){html+=`<div class="empty-state" style="padding:24px"><div class="em">🗓️</div><p>Sem encomendas neste dia.</p></div>`}
+  else html+=list.map(cardHTML).join('');
+  wrap.innerHTML=html;bindCards(wrap);
+}
+
+/* ---------- card ---------- */
+function cardHTML(o){
+  const tc=o.tipo==='entrega'?'tipo-e':'tipo-r',tl=o.tipo==='entrega'?'🛵 Entrega':'🏪 Retirada';
+  let sp=[];
+  if(o.tamanho)sp.push(`<span class="spec">📏 ${esc(o.tamanho)}</span>`);
+  if(o.recheio)sp.push(`<span class="spec">🍫 ${esc(o.recheio)}</span>`);
+  sp.push(`<span class="spec ${tc}">${tl}${o.tipo==='entrega'&&o.endereco?': '+esc(o.endereco):''}</span>`);
+  if(o.valor)sp.push(`<span class="spec valor">💰 R$ ${esc(o.valor)}</span>`);
+  return `<div class="card ${o.tipo}">
+    <div class="card-top"><div><div class="tema">${esc(o.tema||'(sem tema)')}</div><div class="cliente">👤 ${esc(o.cliente||'—')}</div></div>${o.hora?`<div class="time-tag">${o.hora}</div>`:''}</div>
+    <div class="specs">${sp.join('')}</div>
+    ${o.obs?`<div class="obs">📝 ${esc(o.obs)}</div>`:''}
+    <div class="card-actions">${o.tel?`<button class="btn-wa" data-wa="${o.id}">💬 Confirmar</button>`:''}<button class="btn-ed" data-ed="${o.id}">✏️ Editar</button><button class="btn-del" data-del="${o.id}">🗑️</button></div>
+  </div>`;
+}
+function bindCards(scope){
+  scope.querySelectorAll('[data-wa]').forEach(b=>b.onclick=()=>sendWhats(b.dataset.wa));
+  scope.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>openSheet(b.dataset.ed));
+  scope.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delOrder(b.dataset.del));
+}
+
+/* ---------- WhatsApp ---------- */
+function sendWhats(id){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  const tt=o.tipo==='entrega'?`🛵 *Entrega*${o.endereco?': '+o.endereco:''}`:'🏪 *Retirada na loja*';
+  const L=[`Olá ${o.cliente}! 🎂 Confirmando sua encomenda na *${cfg.nome||'Doçuras da Fla'}*:``,``,
+    `📅 *Data:* ${fmtDataFull(o.data)}`,o.hora?`⏰ *Horário:* ${o.hora}`:null,`🎀 *Tema:* ${o.tema||'-'}`,
+    o.tamanho?`📏 *Tamanho:* ${o.tamanho}`:null,o.recheio?`🍫 *Recheio:* ${o.recheio}`:null,tt,
+    o.valor?`💰 *Valor:* R$ ${o.valor}`:null,o.obs?`📝 ${o.obs}`:null,``,`Está tudo certo? Qualquer ajuste é só avisar! 💕`].filter(x=>x!==null);
+  const num=(o.tel||'').replace(/\D/g,'');const full=num.length<=11?'55'+num:num;
+  window.open(`https://wa.me/${full}?text=${encodeURIComponent(L.join('\n'))}`,'_blank');
+}
+
+/* ---------- lista ---------- */
+function renderList(){
+  const wrap=$('listWrap'),today=isoDate(new Date());let list=[...orders];
+  if(curFilter==='hoje')list=list.filter(o=>o.data===today);
+  else if(curFilter==='semana')list=list.filter(o=>{const d=diffDays(o.data);return d>=0&&d<=6});
+  else if(curFilter==='prox')list=list.filter(o=>diffDays(o.data)>=0);
+  list.sort((a,b)=>a.data===b.data?(a.hora||'99').localeCompare(b.hora||'99'):a.data.localeCompare(b.data));
+  if(!list.length){wrap.innerHTML=`<div class="empty-state"><div class="em">🧁</div><p>Nenhuma encomenda aqui.</p></div>`;return}
+  let html='',last='';
+  list.forEach(o=>{if(o.data!==last){const dd=diffDays(o.data);let tag=dd===0?'Hoje':dd===1?'Amanhã':dd<0?'Atrasada':'';html+=`<div class="dg-label">${fmtDataFull(o.data)}${tag?' · '+tag:''}</div>`;last=o.data}html+=cardHTML(o)});
+  wrap.innerHTML=html;bindCards(wrap);
+}
+
+/* ---------- sheet encomenda ---------- */
+function openSheet(id){
+  editId=id||null;$('sheetTitle').textContent=id?'Editar encomenda':'Nova encomenda';
+  if(id){const o=orders.find(x=>x.id===id);
+    $('fId').value=o.id;$('fCliente').value=o.cliente||'';$('fTel').value=o.tel||'';$('fTema').value=o.tema||'';
+    $('fData').value=o.data||'';$('fHora').value=o.hora||'';$('fTamanho').value=o.tamanho||'';$('fRecheio').value=o.recheio||'';
+    $('fValor').value=o.valor||'';$('fEndereco').value=o.endereco||'';$('fObs').value=o.obs||'';setTipo(o.tipo||'retirada');
+  }else{['fId','fCliente','fTel','fTema','fHora','fTamanho','fRecheio','fValor','fEndereco','fObs'].forEach(k=>$(k).value='');$('fData').value=selDate;setTipo('retirada')}
+  $('sheetBg').classList.add('open');$('sheet').classList.add('open');
+}
+function closeSheet(){$('sheetBg').classList.remove('open');$('sheet').classList.remove('open')}
+function setTipo(t){curTipo=t;document.querySelectorAll('.chip[data-tipo]').forEach(c=>c.classList.toggle('on',c.dataset.tipo===t));$('enderecoField').classList.toggle('show',t==='entrega')}
+function saveOrder(){
+  const cliente=$('fCliente').value.trim(),tema=$('fTema').value.trim(),data=$('fData').value;
+  if(!cliente){toast('Informe o cliente');return}if(!tema){toast('Informe o tema');return}if(!data){toast('Informe a data');return}
+  const o={id:editId||uid(),cliente,tema,data,tel:$('fTel').value.trim(),hora:$('fHora').value,tamanho:$('fTamanho').value.trim(),recheio:$('fRecheio').value.trim(),tipo:curTipo,endereco:$('fEndereco').value.trim(),valor:$('fValor').value.trim(),obs:$('fObs').value.trim()};
+  dbSaveOrder(o);selDate=data;curMonth=new Date(+data.split('-')[0],+data.split('-')[1]-1,1);
+  closeSheet();toast(editId?'Encomenda atualizada ✓':'Encomenda salva ✓');
+}
+function delOrder(id){const o=orders.find(x=>x.id===id);if(!confirm(`Excluir "${o.tema}" de ${o.cliente}?`))return;dbDelOrder(id);toast('Encomenda excluída')}
+
+/* ---------- sheet status do dia ---------- */
+function openStatus(iso){
+  stSelDate=iso;const cur=days[iso];stSelTipo=cur?cur.tipo:'normal';$('stNota').value=cur?cur.nota||'':'';
+  $('stTitle').textContent='Status — '+fmtDataFull(iso);
+  document.querySelectorAll('#stChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.st===stSelTipo));
+  $('stBg').classList.add('open');$('stSheet').classList.add('open');
+}
+function closeStatus(){$('stBg').classList.remove('open');$('stSheet').classList.remove('open')}
+function saveStatus(){
+  if(stSelTipo==='normal')dbClearDay(stSelDate);
+  else dbSaveDay(stSelDate,{tipo:stSelTipo,nota:$('stNota').value.trim()});
+  closeStatus();toast('Status atualizado ✓');
+}
+
+/* ---------- render ---------- */
+function renderAll(){refreshHeader();renderCal();renderDayOrders();renderList()}
+
+/* ---------- eventos ---------- */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');const v=t.dataset.view;$('view-cal').style.display=v==='cal'?'block':'none';$('view-list').style.display=v==='list'?'block':'none'});
+$('prevM').onclick=()=>{curMonth.setMonth(curMonth.getMonth()-1);renderCal()};
+$('nextM').onclick=()=>{curMonth.setMonth(curMonth.getMonth()+1);renderCal()};
+$('todayBtn').onclick=()=>{curMonth=new Date();curMonth.setDate(1);selDate=isoDate(new Date());renderCal();renderDayOrders()};
+$('fab').onclick=()=>openSheet();
+$('sheetClose').onclick=closeSheet;$('sheetBg').onclick=closeSheet;$('saveBtn').onclick=saveOrder;
+document.querySelectorAll('.chip[data-tipo]').forEach(c=>c.onclick=()=>setTipo(c.dataset.tipo));
+document.querySelectorAll('.suggest').forEach(s=>s.querySelectorAll('button').forEach(b=>b.onclick=()=>{$(s.dataset.target).value=b.textContent}));
+document.querySelectorAll('.filters button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.filters button').forEach(x=>x.classList.remove('active'));b.classList.add('active');curFilter=b.dataset.f;renderList()});
+document.querySelectorAll('#stChips .chip').forEach(c=>c.onclick=()=>{stSelTipo=c.dataset.st;document.querySelectorAll('#stChips .chip').forEach(x=>x.classList.toggle('on',x===c))});
+$('stClose').onclick=closeStatus;$('stBg').onclick=closeStatus;$('stSave').onclick=saveStatus;
+$('cfgBtn').onclick=()=>{$('cfgNome').value=cfg.nome||'';$('cfgBg').classList.add('open');$('cfgSheet').classList.add('open')};
+$('cfgClose').onclick=()=>{$('cfgBg').classList.remove('open');$('cfgSheet').classList.remove('open')};
+$('cfgBg').onclick=()=>{$('cfgBg').classList.remove('open');$('cfgSheet').classList.remove('open')};
+$('cfgSave').onclick=()=>{cfg.nome=$('cfgNome').value.trim()||'Doçuras da Fla';dbSaveCfg();refreshHeader();$('cfgBg').classList.remove('open');$('cfgSheet').classList.remove('open');toast('Configuração salva ✓')};
+$('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify({orders,days,cfg},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`docuras-da-fla-${isoDate(new Date())}.json`;a.click();toast('Backup exportado ✓')};
+$('importBtn').onclick=()=>$('importFile').click();
+$('importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d.orders){if(mode==='cloud'){d.orders.forEach(o=>db.ref(ROOT+'/orders/'+o.id).set(o));if(d.days)Object.keys(d.days).forEach(k=>db.ref(ROOT+'/days/'+k).set(d.days[k]))}else{orders=d.orders;days=d.days||{};if(d.cfg)cfg=d.cfg;lsave(LS_O,orders);lsave(LS_D,days);lsave(LS_C,cfg);renderAll()}toast('Dados importados ✓')}}catch(err){toast('Arquivo inválido')}};r.readAsText(f)};
+
+/* ---------- gate de acesso ---------- */
+function startApp(){initData()}
+if(APP_CODE && localStorage.getItem('df_unlock')!==APP_CODE){
+  $('gate').classList.add('show');
+  const tryUnlock=()=>{if($('gateInput').value===APP_CODE){localStorage.setItem('df_unlock',APP_CODE);$('gate').classList.remove('show');startApp()}else{toast('Código incorreto')}};
+  $('gateBtn').onclick=tryUnlock;
+  $('gateInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock()});
+}else{startApp()}
+</script>
+</body>
+</html>
