@@ -325,20 +325,27 @@ function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');cle
 
 /* ---------- camada de dados (nuvem ou local) ---------- */
 function initData(){
-  const ok = window.firebase && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf('COLE')<0;
-  if(ok){
-    try{
-      firebase.initializeApp(FIREBASE_CONFIG);
-      db=firebase.database();mode='cloud';
-      const attach=()=>{
-        db.ref(ROOT+'/orders').on('value',s=>{const v=s.val();orders=v?Object.values(v):[];renderAll()});
-        db.ref(ROOT+'/days').on('value',s=>{days=s.val()||{};renderAll()});
-        db.ref(ROOT+'/config').on('value',s=>{const v=s.val();if(v&&v.nome)cfg=v;refreshHeader();renderAll()});
-      };
-      firebase.auth().signInAnonymously().then(attach).catch(e=>{console.warn(e);attach()});
-    }catch(e){console.warn('Firebase falhou:',e);mode='local';loadLocal()}
-  }else{mode='local';loadLocal()}
-  $('shopSub').textContent = mode==='cloud' ? 'Agenda compartilhada ☁️' : 'Agenda local 📱';
+  const hasFb = (typeof window.firebase!=='undefined') && firebase.initializeApp;
+  const keyOk = FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf('COLE')<0;
+  if(!hasFb || !keyOk){
+    mode='local';loadLocal();
+    $('shopSub').textContent='Agenda local 📱'+(!hasFb?' · SDK não carregou':'');
+    return;
+  }
+  try{
+    if(!firebase.apps||!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db=firebase.database();mode='cloud';
+    try{ if(firebase.auth) firebase.auth().signInAnonymously().catch(e=>console.warn('auth:',e.code)); }catch(e){console.warn('auth indisponível',e)}
+    db.ref(ROOT+'/orders').on('value',
+      s=>{const v=s.val();orders=v?Object.values(v):[];renderAll()},
+      err=>{toast('Banco sem acesso: '+(err.code||err.message));$('shopSub').textContent='Conectado, sem acesso ⚠️'});
+    db.ref(ROOT+'/days').on('value',s=>{days=s.val()||{};renderAll()},()=>{});
+    db.ref(ROOT+'/config').on('value',s=>{const v=s.val();if(v&&v.nome)cfg=v;refreshHeader();renderAll()},()=>{});
+    $('shopSub').textContent='Agenda compartilhada ☁️';
+  }catch(e){
+    mode='local';loadLocal();
+    $('shopSub').textContent='Agenda local 📱 · erro: '+(e.message||e);
+  }
 }
 function loadLocal(){orders=load(LS_O,[]);days=load(LS_D,{});cfg=load(LS_C,{nome:'Doçuras da Fla'});renderAll()}
 
@@ -415,7 +422,7 @@ function bindCards(scope){
 function sendWhats(id){
   const o=orders.find(x=>x.id===id);if(!o)return;
   const tt=o.tipo==='entrega'?`🛵 *Entrega*${o.endereco?': '+o.endereco:''}`:'🏪 *Retirada na loja*';
-  const L=[`Olá ${o.cliente}! 🎂 Confirmando sua encomenda na *${cfg.nome||'Doçuras da Fla'}*:``,``,
+  const L=[`Olá ${o.cliente}! 🎂 Confirmando sua encomenda na *${cfg.nome||'Doçuras da Fla'}*:`,``,
     `📅 *Data:* ${fmtDataFull(o.data)}`,o.hora?`⏰ *Horário:* ${o.hora}`:null,`🎀 *Tema:* ${o.tema||'-'}`,
     o.tamanho?`📏 *Tamanho:* ${o.tamanho}`:null,o.recheio?`🍫 *Recheio:* ${o.recheio}`:null,tt,
     o.valor?`💰 *Valor:* R$ ${o.valor}`:null,o.obs?`📝 ${o.obs}`:null,``,`Está tudo certo? Qualquer ajuste é só avisar! 💕`].filter(x=>x!==null);
