@@ -99,8 +99,8 @@
   .rsm .r.tipo.retirada .vl{color:#0d7a4a}
   .rsm .r.tipo.entrega .vl{color:#235a8c}
   .rsm .r.valor .vl{color:var(--rose-dark);font-size:16px}
-  .card .obs{font-size:13.5px;color:var(--ink);background:var(--cream-2);padding:10px 12px;border-radius:10px;margin-bottom:12px;line-height:1.45;border-left:4px solid var(--caramel)}
-  .card .obs b{color:#8a6529}
+  .card .obs{font-size:15.5px;color:var(--ink);background:#FFF3DA;padding:13px 15px;border-radius:13px;margin-bottom:12px;line-height:1.55;border:2px solid var(--caramel);font-weight:600}
+  .card .obs b{color:#8a6529;font-weight:800;display:block;margin-bottom:2px;font-size:14px;text-transform:uppercase;letter-spacing:.4px}
   .card-actions{display:flex;gap:7px}
   .card-actions button{flex:1;border:none;padding:9px;border-radius:11px;font-family:'Manrope';font-weight:700;font-size:12.5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:.12s}
   .card-actions button:active{transform:scale(.96)}
@@ -341,13 +341,27 @@ function initData(){
   try{
     if(!firebase.apps||!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     db=firebase.database();mode='cloud';
-    try{ if(firebase.auth) firebase.auth().signInAnonymously().catch(e=>console.warn('auth:',e.code)); }catch(e){console.warn('auth indisponível',e)}
-    db.ref(ROOT+'/orders').on('value',
-      s=>{const v=s.val();orders=v?Object.values(v):[];renderAll()},
-      err=>{toast('Banco sem acesso: '+(err.code||err.message));$('shopSub').textContent='Conectado, sem acesso ⚠️'});
-    db.ref(ROOT+'/days').on('value',s=>{days=s.val()||{};renderAll()},()=>{});
-    db.ref(ROOT+'/config').on('value',s=>{const v=s.val();if(v&&v.nome)cfg=v;refreshHeader();renderAll()},()=>{});
-    $('shopSub').textContent='Agenda compartilhada ☁️';
+    renderAll(); // mostra o calendário na hora, mesmo antes dos dados chegarem
+    let attached=false;
+    const attach=()=>{
+      if(attached)return; attached=true;
+      $('shopSub').textContent='Agenda compartilhada ☁️';
+      db.ref(ROOT+'/orders').on('value',
+        s=>{const v=s.val();orders=v?Object.values(v):[];renderAll()},
+        err=>{$('shopSub').textContent='Conectado, sem acesso ⚠️';toast('Sem acesso: '+(err.code||err.message))});
+      db.ref(ROOT+'/days').on('value',s=>{days=s.val()||{};renderAll()},()=>{});
+      db.ref(ROOT+'/config').on('value',s=>{const v=s.val();if(v&&v.nome)cfg=v;refreshHeader();renderAll()},()=>{});
+    };
+    if(firebase.auth){
+      firebase.auth().onAuthStateChanged(u=>{ if(u) attach(); });
+      firebase.auth().signInAnonymously().catch(e=>{
+        console.warn('auth:',e.code);
+        $('shopSub').textContent='Login falhou ⚠️: '+e.code;
+        toast('Login falhou: '+e.code);
+      });
+    }else{
+      attach(); // sem módulo de login: tenta direto (regras abertas)
+    }
   }catch(e){
     mode='local';loadLocal();
     $('shopSub').textContent='Agenda local 📱 · erro: '+(e.message||e);
@@ -416,7 +430,7 @@ function cardHTML(o){
   return `<div class="card ${o.tipo}">
     <div class="card-top"><div><div class="tema">${esc(o.tema||'(sem tema)')}</div><div class="cliente">👤 ${esc(o.cliente||'—')}</div></div>${o.hora?`<div class="time-tag">${o.hora}</div>`:''}</div>
     <div class="rsm">${rows}</div>
-    ${o.obs?`<div class="obs"><b>📝 Obs:</b> ${esc(o.obs)}</div>`:''}
+    ${o.obs?`<div class="obs"><b>📝 Resumo</b> ${esc(o.obs)}</div>`:''}
     <div class="card-actions">${o.tel?`<button class="btn-wa" data-wa="${o.id}">💬 Confirmar</button>`:''}<button class="btn-ed" data-ed="${o.id}">✏️ Editar</button><button class="btn-del" data-del="${o.id}">🗑️</button></div>
   </div>`;
 }
