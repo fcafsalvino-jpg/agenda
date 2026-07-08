@@ -147,6 +147,33 @@
   .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:14px;font-size:13.5px;font-weight:600;z-index:60;opacity:0;pointer-events:none;transition:.25s;box-shadow:var(--shadow);white-space:nowrap}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  /* card clicável + tela de detalhes */
+  .card[data-open]{cursor:pointer}
+  .card .tap-hint{font-size:11px;color:var(--rose);font-weight:700;margin-top:4px;opacity:.85}
+  #detail{position:fixed;inset:0;z-index:70;background:var(--cream);transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);overflow-y:auto;display:flex;flex-direction:column}
+  #detail.open{transform:translateY(0)}
+  .det-hero{position:relative;background:linear-gradient(135deg,var(--rose),var(--rose-dark));color:#fff;padding:26px 22px 28px;border-radius:0 0 26px 26px}
+  .det-hero .tema{font-family:'Fraunces',serif;font-size:27px;font-weight:600;line-height:1.15;margin-bottom:7px;padding-right:44px}
+  .det-hero .cli{font-size:16px;opacity:.92;font-weight:600}
+  .det-hero .when{margin-top:14px;display:inline-flex;gap:6px;background:rgba(255,255,255,.18);padding:9px 15px;border-radius:13px;font-weight:700;font-size:14.5px}
+  .det-x{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.2);border:none;color:#fff;width:40px;height:40px;border-radius:13px;font-size:19px;cursor:pointer}
+  .det-x:active{transform:scale(.92)}
+  .det-body{padding:8px 20px 0;flex:1}
+  .det-row{display:flex;align-items:baseline;gap:12px;padding:15px 2px;border-bottom:1px solid var(--line)}
+  .det-row .ic{font-size:21px;flex-shrink:0}
+  .det-row .lb{font-weight:700;color:var(--ink-soft);min-width:115px;flex-shrink:0;font-size:14px}
+  .det-row .vl{font-weight:700;color:var(--ink);font-size:18px;flex:1}
+  .det-row.tipo-e .vl{color:#235a8c}.det-row.tipo-r .vl{color:#0d7a4a}
+  .det-row.valor .vl{color:var(--rose-dark);font-size:22px}
+  .det-resumo{margin:18px 0;background:#FFF3DA;border:2px solid var(--caramel);border-radius:15px;padding:16px}
+  .det-resumo .h{font-weight:800;color:#8a6529;text-transform:uppercase;font-size:13px;letter-spacing:.5px;margin-bottom:7px}
+  .det-resumo .t{font-size:16.5px;line-height:1.6;font-weight:600;color:var(--ink)}
+  .det-actions{position:sticky;bottom:0;background:var(--cream);padding:14px 20px 22px;display:flex;gap:9px;border-top:1px solid var(--line)}
+  .det-actions button{flex:1;border:none;padding:16px;border-radius:15px;font-family:'Manrope';font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .det-actions button:active{transform:scale(.97)}
+  .det-wa{background:#25D366;color:#fff}.det-ed{background:var(--cream-2);color:var(--ink)}
+  .det-del{background:#FBE7E7;color:#C0392B;flex:0 0 56px}
+
   /* gate */
   #gate{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,var(--rose),var(--rose-dark));display:none;flex-direction:column;align-items:center;justify-content:center;color:#fff;padding:30px;text-align:center}
   #gate.show{display:flex}
@@ -234,12 +261,16 @@
       <div class="field"><label>Tamanho</label><input id="fTamanho" placeholder="Ex: aro 25, 30 fatias"><div class="suggest" data-target="fTamanho"><button>Pequeno</button><button>Médio</button><button>Grande</button></div></div>
       <div class="field"><label>Recheio</label><input id="fRecheio" placeholder="Ex: brigadeiro"><div class="suggest" data-target="fRecheio"><button>Brigadeiro</button><button>Ninho c/ morango</button><button>Maracujá</button></div></div>
     </div>
+    <div class="field"><label>Docinhos</label><input id="fDoces" placeholder="Ex: 50 brigadeiros e beijinhos"><div class="suggest" data-target="fDoces"><button>50 doces</button><button>100 doces</button><button>Sem doces</button></div></div>
     <div class="field"><label>Entrega ou retirada <span class="req">*</span></label>
       <div class="chips"><button type="button" class="chip on" data-tipo="retirada">🏪 Retirada</button><button type="button" class="chip" data-tipo="entrega">🛵 Entrega</button></div>
     </div>
     <div class="field" id="enderecoField"><label>Endereço de entrega</label><input id="fEndereco" placeholder="Rua, número, bairro..."></div>
-    <div class="field"><label>Valor (R$)</label><input id="fValor" inputmode="decimal" placeholder="0,00"></div>
-    <div class="field"><label>Observações</label><textarea id="fObs" placeholder="Detalhes, cores, alergias, sinal pago..."></textarea></div>
+    <div class="row2">
+      <div class="field"><label>Forma de pagamento</label><input id="fPgto" placeholder="Ex: Pix"><div class="suggest" data-target="fPgto"><button>Pix</button><button>Dinheiro</button><button>Cartão</button></div></div>
+      <div class="field"><label>Valor (R$)</label><input id="fValor" inputmode="decimal" placeholder="0,00"></div>
+    </div>
+    <div class="field"><label>Observações / resumo do pagamento</label><textarea id="fObs" placeholder="Ex: Bolo 190, cupcakes 95... Total 789, Deu 489, Resta 300"></textarea></div>
     <button class="save-btn" id="saveBtn">Salvar encomenda</button>
   </div>
 </div>
@@ -281,6 +312,8 @@
     </div>
   </div>
 </div>
+
+<div id="detail"><div id="detBody"></div></div>
 
 <div class="toast" id="toast"></div>
 
@@ -423,31 +456,69 @@ function cardHTML(o){
   let rows='';
   if(o.tamanho)rows+=row('📏','Tamanho',esc(o.tamanho));
   if(o.recheio)rows+=row('🍫','Recheio',esc(o.recheio));
+  if(o.doces)rows+=row('🍬','Doces',esc(o.doces));
   if(o.hora)rows+=row('⏰','Horário',o.hora);
-  if(o.tipo==='entrega')rows+=row('🛵','Entrega',esc(o.endereco||'A combinar'),'tipo entrega');
-  else rows+=row('🏪','Retirada','Na loja','tipo retirada');
+  if(o.tipo==='entrega')rows+=row('📦','Recebimento','Entrega'+(o.endereco?' — '+esc(o.endereco):''),'tipo entrega');
+  else rows+=row('📦','Recebimento','Retirada na loja','tipo retirada');
+  if(o.pgto)rows+=row('💳','Pagamento',esc(o.pgto));
   if(o.valor)rows+=row('💰','Valor','R$ '+esc(o.valor),'valor');
-  return `<div class="card ${o.tipo}">
-    <div class="card-top"><div><div class="tema">${esc(o.tema||'(sem tema)')}</div><div class="cliente">👤 ${esc(o.cliente||'—')}</div></div>${o.hora?`<div class="time-tag">${o.hora}</div>`:''}</div>
+  return `<div class="card ${o.tipo}" data-open="${o.id}">
+    <div class="card-top"><div><div class="tema">🎂 ${esc(o.tema||'(sem tema)')}</div><div class="cliente">👤 ${esc(o.cliente||'—')}</div></div>${o.hora?`<div class="time-tag">${o.hora}</div>`:''}</div>
     <div class="rsm">${rows}</div>
     ${o.obs?`<div class="obs"><b>📝 Resumo</b> ${esc(o.obs)}</div>`:''}
+    <div class="tap-hint">👆 Toque para ver a encomenda completa</div>
     <div class="card-actions">${o.tel?`<button class="btn-wa" data-wa="${o.id}">💬 Confirmar</button>`:''}<button class="btn-ed" data-ed="${o.id}">✏️ Editar</button><button class="btn-del" data-del="${o.id}">🗑️</button></div>
   </div>`;
 }
 function bindCards(scope){
+  scope.querySelectorAll('[data-open]').forEach(c=>c.addEventListener('click',e=>{if(e.target.closest('button'))return;openDetail(c.dataset.open)}));
   scope.querySelectorAll('[data-wa]').forEach(b=>b.onclick=()=>sendWhats(b.dataset.wa));
   scope.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>openSheet(b.dataset.ed));
   scope.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delOrder(b.dataset.del));
 }
 
+/* ---------- tela de detalhes (tela cheia) ---------- */
+function openDetail(id){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  const row=(ic,lb,vl,cls)=>vl?`<div class="det-row ${cls||''}"><span class="ic">${ic}</span><span class="lb">${lb}</span><span class="vl">${vl}</span></div>`:'';
+  let body='';
+  body+=row('📏','Tamanho',o.tamanho?esc(o.tamanho):'');
+  body+=row('🍫','Recheio',o.recheio?esc(o.recheio):'');
+  body+=row('🍬','Doces',o.doces?esc(o.doces):'');
+  body+=row('⏰','Horário',o.hora||'');
+  body+=row('📦','Recebimento',o.tipo==='entrega'?('Entrega'+(o.endereco?' — '+esc(o.endereco):'')):'Retirada na loja',o.tipo==='entrega'?'tipo-e':'tipo-r');
+  body+=row('💳','Pagamento',o.pgto?esc(o.pgto):'');
+  body+=row('💰','Valor',o.valor?('R$ '+esc(o.valor)):'','valor');
+  const resumo=o.obs?`<div class="det-resumo"><div class="h">📝 Resumo do pagamento</div><div class="t">${esc(o.obs)}</div></div>`:'';
+  $('detBody').innerHTML=`
+    <div class="det-hero">
+      <button class="det-x" id="detClose">✕</button>
+      <div class="tema">🎂 ${esc(o.tema||'(sem tema)')}</div>
+      <div class="cli">👤 ${esc(o.cliente||'—')}${o.tel?' · 📱 '+esc(o.tel):''}</div>
+      <div class="when">📅 ${fmtDataFull(o.data)}${o.hora?' · ⏰ '+o.hora:''}</div>
+    </div>
+    <div class="det-body"><div class="det-grid">${body}</div>${resumo}</div>
+    <div class="det-actions">
+      ${o.tel?`<button class="det-wa" id="detWa">💬 Confirmar no WhatsApp</button>`:''}
+      <button class="det-ed" id="detEd">✏️ Editar</button>
+      <button class="det-del" id="detDel">🗑️</button>
+    </div>`;
+  $('detClose').onclick=closeDetail;
+  if($('detWa'))$('detWa').onclick=()=>sendWhats(id);
+  $('detEd').onclick=()=>{closeDetail();openSheet(id)};
+  $('detDel').onclick=()=>{closeDetail();delOrder(id)};
+  $('detail').classList.add('open');
+}
+function closeDetail(){$('detail').classList.remove('open')}
+
 /* ---------- WhatsApp ---------- */
 function sendWhats(id){
   const o=orders.find(x=>x.id===id);if(!o)return;
-  const tt=o.tipo==='entrega'?`🛵 *Entrega*${o.endereco?': '+o.endereco:''}`:'🏪 *Retirada na loja*';
+  const tt=o.tipo==='entrega'?`📦 *Recebimento:* Entrega${o.endereco?' — '+o.endereco:''}`:'📦 *Recebimento:* Retirada na loja';
   const L=[`Olá ${o.cliente}! 🎂 Confirmando sua encomenda na *${cfg.nome||'Doçuras da Fla'}*:`,``,
-    `📅 *Data:* ${fmtDataFull(o.data)}`,o.hora?`⏰ *Horário:* ${o.hora}`:null,`🎀 *Tema:* ${o.tema||'-'}`,
-    o.tamanho?`📏 *Tamanho:* ${o.tamanho}`:null,o.recheio?`🍫 *Recheio:* ${o.recheio}`:null,tt,
-    o.valor?`💰 *Valor:* R$ ${o.valor}`:null,o.obs?`📝 ${o.obs}`:null,``,`Está tudo certo? Qualquer ajuste é só avisar! 💕`].filter(x=>x!==null);
+    `🎂 *Bolo:* ${o.tema||'-'}`,o.tamanho?`📏 *Tamanho:* ${o.tamanho}`:null,o.recheio?`🍫 *Recheio:* ${o.recheio}`:null,
+    o.doces?`🍬 *Doces:* ${o.doces}`:null,o.hora?`⏰ *Horário:* ${o.hora}`:null,tt,
+    o.pgto?`💳 *Pagamento:* ${o.pgto}`:null,o.valor?`💰 *Valor:* R$ ${o.valor}`:null,o.obs?`📝 ${o.obs}`:null,``,`Está tudo certo? Qualquer ajuste é só avisar! 💕`].filter(x=>x!==null);
   const num=(o.tel||'').replace(/\D/g,'');const full=num.length<=11?'55'+num:num;
   window.open(`https://wa.me/${full}?text=${encodeURIComponent(L.join('\n'))}`,'_blank');
 }
@@ -471,8 +542,9 @@ function openSheet(id){
   if(id){const o=orders.find(x=>x.id===id);
     $('fId').value=o.id;$('fCliente').value=o.cliente||'';$('fTel').value=o.tel||'';$('fTema').value=o.tema||'';
     $('fData').value=o.data||'';$('fHora').value=o.hora||'';$('fTamanho').value=o.tamanho||'';$('fRecheio').value=o.recheio||'';
+    $('fDoces').value=o.doces||'';$('fPgto').value=o.pgto||'';
     $('fValor').value=o.valor||'';$('fEndereco').value=o.endereco||'';$('fObs').value=o.obs||'';setTipo(o.tipo||'retirada');
-  }else{['fId','fCliente','fTel','fTema','fHora','fTamanho','fRecheio','fValor','fEndereco','fObs'].forEach(k=>$(k).value='');$('fData').value=selDate;setTipo('retirada')}
+  }else{['fId','fCliente','fTel','fTema','fHora','fTamanho','fRecheio','fDoces','fPgto','fValor','fEndereco','fObs'].forEach(k=>$(k).value='');$('fData').value=selDate;setTipo('retirada')}
   $('sheetBg').classList.add('open');$('sheet').classList.add('open');
 }
 function closeSheet(){$('sheetBg').classList.remove('open');$('sheet').classList.remove('open')}
@@ -480,7 +552,7 @@ function setTipo(t){curTipo=t;document.querySelectorAll('.chip[data-tipo]').forE
 function saveOrder(){
   const cliente=$('fCliente').value.trim(),tema=$('fTema').value.trim(),data=$('fData').value;
   if(!cliente){toast('Informe o cliente');return}if(!tema){toast('Informe o tema');return}if(!data){toast('Informe a data');return}
-  const o={id:editId||uid(),cliente,tema,data,tel:$('fTel').value.trim(),hora:$('fHora').value,tamanho:$('fTamanho').value.trim(),recheio:$('fRecheio').value.trim(),tipo:curTipo,endereco:$('fEndereco').value.trim(),valor:$('fValor').value.trim(),obs:$('fObs').value.trim()};
+  const o={id:editId||uid(),cliente,tema,data,tel:$('fTel').value.trim(),hora:$('fHora').value,tamanho:$('fTamanho').value.trim(),recheio:$('fRecheio').value.trim(),doces:$('fDoces').value.trim(),pgto:$('fPgto').value.trim(),tipo:curTipo,endereco:$('fEndereco').value.trim(),valor:$('fValor').value.trim(),obs:$('fObs').value.trim()};
   dbSaveOrder(o);selDate=data;curMonth=new Date(+data.split('-')[0],+data.split('-')[1]-1,1);
   closeSheet();toast(editId?'Encomenda atualizada ✓':'Encomenda salva ✓');
 }
